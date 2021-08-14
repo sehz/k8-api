@@ -5,7 +5,7 @@ mod canary_test {
     use tracing::debug;
     use tracing::info;
 
-    use fluvio_future::test_async;
+    use fluvio_future::test as ftest;
     use k8_client::ClientError;
     use k8_client::K8Client;
     use k8_metadata_client::MetadataClient;
@@ -14,10 +14,10 @@ mod canary_test {
     use k8_types::K8Obj;
 
     // get services to find kubernetes api
-    #[test_async]
-    async fn test_client_get_services() -> Result<(), ClientError> {
+    #[ftest]
+    async fn test_client_get_services()  {
         let client = K8Client::default().expect("cluster could not be configured");
-        let services = client.retrieve_items::<ServiceSpec, _>("default").await?;
+        let services = client.retrieve_items::<ServiceSpec, _>("default").await.expect("retrieved");
         debug!("service: {} has been retrieved", services.items.len());
 
         let kubernetes_service = services
@@ -25,13 +25,12 @@ mod canary_test {
             .iter()
             .find(|i| i.metadata.name == "kubernetes");
         assert!(kubernetes_service.is_some());
-        Ok(())
     }
 
     use k8_types::core::secret::SecretSpec;
 
-    #[test_async]
-    async fn test_client_secrets() -> Result<(), ClientError> {
+    #[ftest]
+    async fn test_client_secrets()  {
         let client = K8Client::default().expect("cluster could not be configured");
         let secrets = client
             .retrieve_items::<SecretSpec, _>(NameSpace::All)
@@ -51,11 +50,10 @@ mod canary_test {
 
         assert!(system_secrets.len() > 20);
 
-        Ok(())
     }
 
-    #[test_async]
-    async fn test_pods() -> Result<(), ClientError> {
+    #[ftest]
+    async fn test_pods() {
         use k8_types::core::pod::PodSpec;
 
         let client = K8Client::default().expect("cluster could not be configured");
@@ -68,6 +66,21 @@ mod canary_test {
             println!("pod: {:#?}", pod);
         }
 
-        Ok(())
+    }
+
+    #[ftest]
+    async fn test_pods2()   {
+        use k8_types::core::pod::PodSpec;
+
+        let client = K8Client::default().expect("cluster could not be configured");
+        let pod_items = client
+            .retrieve_items::<PodSpec, _>("default")
+            .await
+            .expect("pods should exist");
+
+        for pod in pod_items.items {
+            println!("pod: {:#?}", pod);
+        }
+
     }
 }
